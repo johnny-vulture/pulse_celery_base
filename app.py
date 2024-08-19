@@ -1,6 +1,6 @@
 # Import necessary modules from Flask, Celery, and other related modules
 from flask import Flask, request, jsonify
-from tasks import add, add_two
+from tasks import add, add_two, scrape_scores_task
 from celery import Celery
 from celery.result import AsyncResult
 from constants import *
@@ -51,6 +51,15 @@ celery_app.conf.update(
 
 # Define a route for adding data using a POST request
 
+@app.route("/score")
+def run_scrape():
+    try:
+        result = scrape_scores_task.delay()  # Ensure you pass the required argument to the task
+        return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
 
 @app.route("/add_two")
 def run_two():
@@ -79,7 +88,7 @@ def adddata():
         result = add.delay(x, y)
 
         # Return the task ID as a JSON response
-        return jsonify({'Task ID': result.id})
+        return jsonify({'Task ID': result.id, 'Task Status': result.status})
     except Exception as e:
         return jsonify({'error': str(e)})
 
