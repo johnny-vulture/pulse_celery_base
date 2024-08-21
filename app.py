@@ -1,6 +1,6 @@
 # Import necessary modules from Flask, Celery, and other related modules
 from flask import Flask, request, jsonify
-from tasks import add, add_two, scrape_scores_task,  scrape_comments_task, scrape_main
+from tasks import *
 from celery import Celery
 from celery.result import AsyncResult
 from constants import *
@@ -53,7 +53,7 @@ celery_app.conf.update(
 @app.route("/full")
 def run_scrape_full():
     try:
-        result = scrape_main.delay()  # Ensure you pass the required argument to the task
+        result = scrape_append.delay()  # Ensure you pass the required argument to the task
         return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -67,10 +67,6 @@ def run_scrape_comment():
         return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
     except Exception as e:
         return jsonify(error=str(e)), 500
-
-
-
-
 
 
 @app.route("/score")

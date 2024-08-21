@@ -1,4 +1,5 @@
 import time
+import datetime
 import requests
 import asyncio
 import io
@@ -67,13 +68,10 @@ def scrape_comments_task():
     return json.dumps({'comments': match_comments})
 
 
-
-
-
 @app.task()
-def scrape_scores_task():
-    score = scrape_scores()
-    return {'score': score}
+def scrape_scores_task(url):
+    score = scrape_scores(url)
+    return score
 
 
 @app.task()
@@ -93,6 +91,38 @@ def add_two():
     db.tasks.insert_one({'title': "THE NOTORIOUS B.I.G.",
                          'body': "NEVER KEEP NO WEIGHT ON YOU"})
     return {"message": "success"}
+
+@app.task()
+def scrape_append():
+    # declare urls
+    base_url = "https://www.goal.com/en-za/match/granada-vs-valencia/1bdpedpbzvhk5qw1sttvc38k4"
+    minor_url = "https://africa.espn.com/football/commentary/_/gameId/674265"
+    
+    # get score
+    team_names = []
+
+    # Scrape and print new scores using the scrape_scores function
+    current_score =  scrape_scores(base_url)
+    if current_score is not None:
+        print(f"New Scores: {current_score}")
+
+    team_names_list = list(current_score.keys())
+    team_a_name = team_names_list[0]
+    team_b_name = team_names_list[1]
+    team_names.append(team_a_name)
+    team_names.append(team_b_name)
+
+    # get comments
+    match_date = datetime.now().strftime("%Y-%m-%d")
+    # Scrape and print new commentary using the fetch_comments function
+    commentary =  scrape_commentary_with_transform(minor_url, team_names)
+
+    add_comments_to_match(team_a_name, team_b_name, match_date, commentary)
+
+    return {"message": "success full scrape done"}
+
+    # appends
+
 
 @app.task()
 def scrape_main():
@@ -143,11 +173,20 @@ def scrape_main():
 
             # Scrape and print new commentary using the fetch_comments function
             commentary =  scrape_commentary_with_transform(minor_url, team_names)
+
+
+            """
+                send to mongo here but check for redudency
+                comment storage id can be based on date and teams
+                check if comment is present before appending
+            """
+
+
             if len(commentary) > 0:
                 for comment_data in commentary:
                     comment_text = comment_data
 
-                    # Check if the comment is not already in all_commentary to avoid duplicates
+                    # MONGO HERE
                     if comment_text not in all_commentary:
                         all_commentary.append(comment_text)
                         print("New Commentary:")
