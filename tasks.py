@@ -62,7 +62,7 @@ def scrape_comments_task():
     commentary_url = "https://africa.espn.com/football/commentary/_/gameId/674192"
 
     # List of team names involved in the match
-    team_names = ['Alaves', 'Real Sociedad']
+    team_names = ['Valencia', 'Granada CF']
     match_comments = scrape_commentary_with_transform(commentary_url, team_names)
     
 
@@ -96,8 +96,8 @@ def add_two():
 @app.task()
 def scrape_append():
     # declare urls
-    base_url = "https://www.goal.com/en-za/match/granada-vs-valencia/1bdpedpbzvhk5qw1sttvc38k4"
-    minor_url = "https://africa.espn.com/football/commentary/_/gameId/674265"
+    base_url = "https://www.goal.com/en-za/match/villarreal-vs-atletico-madrid/0RaCUkNv_LpxPP6gg-jd2"
+    minor_url = "https://africa.espn.com/football/commentary/_/gameId/704669"
     
     # get score
     team_names = []

@@ -62,14 +62,14 @@ nlp = spacy.load("en_core_web_md")
 new_events = []
 all_events = []
 
-new_commentary = []
-all_commentary = []
+# new_commentary = []
+# all_commentary = []
 
 # Create a list to store tweetable comments
-tweetable = []
+# tweetable = []
 
 # Create a list to store tweeted comments
-tweeted = []
+# tweeted = []
 
 
 def extract_sports_events_info(text):
@@ -158,19 +158,24 @@ def generate_soccer_comment(prompt):
 
 
 def transform_sentence(sentence, team_names):
+    # Initialize transformed_sentence to None
     transformed_sentence = None
 
+    # Iterate over each team name
     for team_name in team_names:
-        pattern = r"\(({})\)".format(re.escape(team_name))
+        # Create a regex pattern to find the team name in parentheses
+        pattern = r"\(({})\)".format(re.escape(team_name.lower()))
         match = re.search(pattern, sentence)
 
         if match:
+            # Remove the team name and format the remaining text
             player_and_event = re.sub(pattern, "", sentence).strip()
             transformed_sentence = f"{team_name}: {player_and_event}"
             break
 
+    # If no match was found, return the original sentence
     if transformed_sentence is None:
-        transformed_sentence = sentence  # If no match found, retain original sentence
+        transformed_sentence = sentence
 
     return transformed_sentence
 
@@ -243,6 +248,10 @@ def generate_match_id(team_a_name, team_b_name, match_date):
 
 def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
     match_id = generate_match_id(team_a_name, team_b_name, match_date)
+
+    team_names = [team_a_name, team_b_name]
+
+    scoccer_keywords = ["goal", "corner", "foul", "free kick", "substitution", "hand ball", "penalty", "offside", "attempt", "yellow card", "red card"]
     
     # Convert the JSON string to a list of dictionaries
     comments = json.loads(comments_json)
@@ -255,10 +264,53 @@ def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
         try:
             # Check if the comment already exists in the document
             existing_comment = collection.find_one({"_id": match_id, "comments": {"$elemMatch": {"comment": comment["comment"]}}})
+            existing_tweet = collection.find_one({"_id": match_id, "tweetable": {"$elemMatch": {"text": comment["comment"]}}})
+
             if not existing_comment:
                 # If the comment doesn't exist, push it into the comments array
+
+                comment_text = transform_sentence(comment['comment'],team_names )
+
                 collection.update_one({"_id": match_id}, {"$push": {"comments": comment}})
-                print(f"Comment added: {comment['comment']}")
+
+                # RANK
+                if any(keyword in comment_text.lower() for keyword in scoccer_keywords):
+                    matches =  extract_sports_events_info(comment_text)
+                    # Print the list of matches with correct ratings without duplicates
+                    for match in matches:
+                        print('Inside matches')
+                         # Check if the rating is equal or above 8 and add to tweetable list
+                        if match["rating"] >= 8 and not existing_tweet:
+                            # tweetable.append(comment_text)
+                            collection.update_one({"_id": match_id}, {"$push": {"tweetable": {'timestamp':comment['timestamp'],'text':comment_text}}})
+
+                            # Generate soccer comment
+                            tweeter_post =  generate_soccer_comment(
+                                comment_text)
+                            twitter_comment = tweeter_post['Generated Soccer Comment']
+                            print(f'Twitter post: {twitter_comment}')
+
+                            # Generate prompt for image
+                            generated_prompt =  generate_prompt(
+                                comment_text)
+                            prompt_text = generated_prompt["Generated Soccer Comment"]
+                            print(f'Generated prompt: {prompt_text}')
+
+                            # Generate image
+                            image_path =  generate_soccer_moment_image(
+                                prompt_text)
+                            print(
+                                f'Generated image path: {image_path}')
+
+                            #tweeted.append(twitter_comment)
+                            #add a checker
+                            collection.update_one({"_id": match_id}, {"$push": {"tweeted": {'timestamp':comment['timestamp'],'text':twitter_comment}}})
+                else:
+                    print(
+                        "Comment data does not have the expected structure or is not relevant:", comment_text)
+                # CHECK
+                #print(f"Comment added: {comment['comment']}")
+                print(f"Comment added: {comment_text}")
             else:
                 print(f"Comment already exists: {comment['comment']}")
         except Exception as e:
@@ -267,18 +319,19 @@ def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
 
 
 #######################################################
+"""
 def main():
     base_url = "https://www.goal.com/en-za/match/granada-vs-valencia/1bdpedpbzvhk5qw1sttvc38k4"
     minor_url = "https://africa.espn.com/football/commentary/_/gameId/674265"
 
     # Login to the service with provided user credentials
-    """
+    
     await tweet_client.login(
         auth_info_1=USERNAME,
         auth_info_2=EMAIL,
         password=PASSWORD
     )
-    """
+    
 
     # Example usage:
     # Example usage with a specified duration
@@ -346,7 +399,7 @@ def main():
 
                                     tweeted.append(twitter_comment)
 
-                                    """
+                                    
 
                                     # Upload media files and obtain media_ids
                                     media_ids = [
@@ -358,7 +411,7 @@ def main():
                                         text=twitter_comment,
                                         media_ids=media_ids
                                     )
-                                    """
+                                    
 
                         else:
                             print(
@@ -398,3 +451,4 @@ def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+"""
