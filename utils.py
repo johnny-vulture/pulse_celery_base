@@ -240,34 +240,27 @@ def generate_match_id(team_a_name, team_b_name, match_date):
 
     return match_id
 
-def add_comments_to_match(team_a_name, team_b_name, match_date, comments):
+
+def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
     match_id = generate_match_id(team_a_name, team_b_name, match_date)
-
+    
+    # Convert the JSON string to a list of dictionaries
+    comments = json.loads(comments_json)
+    
     # Insert the initial document with an empty comments array or update if it exists
-    collection.update_one(
-        {"_id": match_id},
-        {"$setOnInsert": {"_id": match_id, "comments": []}},
-        upsert=True
-    )
-
+    collection.update_one({"_id": match_id}, {"$setOnInsert": {"_id": match_id, "comments": []}}, upsert=True)
+    
     # Push each comment into the comments array of the document only if it's not already present
     for comment in comments:
         try:
             # Check if the comment already exists in the document
-            existing_comment = collection.find_one(
-                {"_id": match_id, "comments.comment": comment["comment"]}
-            )
-
+            existing_comment = collection.find_one({"_id": match_id, "comments": {"$elemMatch": {"comment": comment["comment"]}}})
             if not existing_comment:
                 # If the comment doesn't exist, push it into the comments array
-                collection.update_one(
-                    {"_id": match_id},
-                    {"$push": {"comments": comment}}
-                )
+                collection.update_one({"_id": match_id}, {"$push": {"comments": comment}})
                 print(f"Comment added: {comment['comment']}")
             else:
                 print(f"Comment already exists: {comment['comment']}")
-
         except Exception as e:
             print(f"An error occurred while adding comment: {e}")
 
