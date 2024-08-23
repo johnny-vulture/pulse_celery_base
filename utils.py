@@ -16,11 +16,14 @@ import hashlib
 from spacy.matcher import Matcher
 from openai import OpenAI
 #from twikit import Client
+
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException, NoSuchElementException
+
 from scrapers import *
 from datetime import datetime
 from pymongo import MongoClient
@@ -257,7 +260,7 @@ def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
     comments = json.loads(comments_json)
     
     # Insert the initial document with an empty comments array or update if it exists
-    collection.update_one({"_id": match_id}, {"$setOnInsert": {"_id": match_id, "comments": []}}, upsert=True)
+    collection.update_one({"_id": match_id}, {"$setOnInsert": {"_id": match_id, "comments": [],  "tweetable":[], "tweeted":[]}}, upsert=True)
     
     # Push each comment into the comments array of the document only if it's not already present
     for comment in comments:
@@ -309,7 +312,7 @@ def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
                     print(
                         "Comment data does not have the expected structure or is not relevant:", comment_text)
                 # CHECK
-                #print(f"Comment added: {comment['comment']}")
+                # print(f"Comment added: {comment['comment']}")
                 print(f"Comment added: {comment_text}")
             else:
                 print(f"Comment already exists: {comment['comment']}")

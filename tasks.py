@@ -20,6 +20,7 @@ from celery import Celery
 from constants import *
 from utils import *
 from scrapers import scrape_scores, scrape_commentary_with_transform
+from sheet import minor
 
 from pymongo import MongoClient
 
@@ -96,8 +97,18 @@ def add_two():
 @app.task()
 def scrape_append():
     # declare urls
-    base_url = "https://www.goal.com/en-za/match/villarreal-vs-atletico-madrid/0RaCUkNv_LpxPP6gg-jd2"
-    minor_url = "https://africa.espn.com/football/commentary/_/gameId/704669"
+    # base_url = "https://www.goal.com/en-za/match/villarreal-vs-atletico-madrid/0RaCUkNv_LpxPP6gg-jd2"
+    # minor_url = "https://africa.espn.com/football/commentary/_/gameId/704669"
+
+    base_url = ''
+    minor_url = ''
+
+    href = minor()
+    if href:
+        base_url = href['goal']
+        # print(base_url)
+        minor_url = href['espn']
+        # print(minor_url)
     
     # get score
     team_names = []
