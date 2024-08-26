@@ -36,11 +36,11 @@ options.add_argument('--disable-dev-shm-usage')
 service = Service('C:\Program Files\Google\Chrome\Application\chromedriver-win64\chromedriver.exe')
 driver = webdriver.Chrome(service=service, options=options)
 
-api_key = ""
-api_secret = ""
-bearer_token = r""
-access_token = ""
-access_token_secret = ""
+api_key = "OZ2qxRMsEBjZZbPmQYGi8a5CM"
+api_secret = "uRyvFnfjW6b7Bpgv8XJbnvpgyam9q0ovwnV4NAoCkkFDPu89x9"
+bearer_token = r"AAAAAAAAAAAAAAAAAAAAAMpgqgEAAAAAdK4NGzM0jraQkxNIWOgd8VMVJ6o%3D3FUVIhX5yezsmxHIQ89Kyep9aYjWxaLsm0z58uR9PYm4qv7Oh2"
+access_token = "1714866475339505664-z0yWX8Fs3REv0RLntocXP7md2tREQ9"
+access_token_secret = "i9bEoQ9NQLrVnBv4Ubj59HYN7l94WDPOMH6vZKIy0QWvI"
 
 
 # Define your Google Sheets constants
@@ -197,6 +197,7 @@ def minor():
 
     except HttpError as err:
         print(err)
+        # https://africa.espn.com/football/commentary/_/gameId/704673
 
 
 href = minor()

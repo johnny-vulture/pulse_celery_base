@@ -2,6 +2,7 @@ import hashlib
 from datetime import datetime
 from pymongo import MongoClient
 from constants import MONGODB_CON_STR
+from utils import *
 
 # Connect to MongoDB
 mongodb_client = MongoClient(MONGODB_CON_STR)
@@ -65,3 +66,45 @@ for comment in comments:
     except Exception as e:
         print(f"An error occurred while adding comment: {e}")
 
+def add_match(link1, link2):
+    try:
+        # Get the base and minor URLs
+        base_url = link1
+        minor_url = link2
+
+        # Format the date as a string (e.g., '2024-08-25')
+        match_date = datetime.now().strftime('%Y-%m-%d')
+
+        # Extract game ID and teams from the minor URL
+        game_id, teams = extract_game_id_and_teams(minor_url)
+
+        # Generate match ID
+        match_id = generate_match_id1(teams[0], teams[1], match_date)
+
+        # Construct the data dictionary to be inserted
+        data = {
+            "_id": match_id,
+            "goal_link": base_url,
+            "espn_link": minor_url,
+            "comments": [],
+            "tweetable": [],
+            "tweeted": []
+        }
+
+        # Insert the data into MongoDB (using upsert)
+        result = collection.update_one(
+            {"_id": match_id},
+            {"$setOnInsert": data},
+            upsert=True
+        )
+
+        # Check if the document was inserted
+        if result.upserted_id:
+            return {"status": "success", "inserted_id": str(result.upserted_id)}
+        else:
+            return {"status": "success", "message": "Document already exists"}
+
+    except Exception as e:
+        # Log the error and return it
+        print(f"Error: {e}")
+        return {"error": str(e)}, 500

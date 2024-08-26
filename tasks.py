@@ -1,5 +1,5 @@
 import time
-import datetime
+from datetime import datetime, timedelta
 import requests
 import asyncio
 import io
@@ -12,15 +12,16 @@ import csv
 import re
 import uuid
 import pandas as pd
+import logging
 from spacy.matcher import Matcher
 from openai import OpenAI
 import re
 import json
-from celery import Celery
+from celery import Celery, shared_task
 from constants import *
 from utils import *
 from scrapers import scrape_scores, scrape_commentary_with_transform
-from sheet import minor
+# from sheet import minor
 
 from pymongo import MongoClient
 
@@ -43,6 +44,9 @@ options.add_argument('--disable-dev-shm-usage')
 service = Service('C:\Program Files\Google\Chrome\Application\chromedriver-win64\chromedriver.exe')
 driver = webdriver.Chrome(service=service, options=options)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Create a Celery instance named 'app'
 app = Celery('tasks', backend=MONGODB_CON_STR,
              broker='amqp://guest@localhost//')
@@ -52,6 +56,8 @@ mongodb_client = MongoClient(MONGODB_CON_STR)
 # client = MongoClient("mongodb://localhost:27017/")
 db = mongodb_client.celery
 # db = client.test_database
+
+collection = db.comments
 
 # Define a Celery task named 'add'
 
@@ -95,6 +101,85 @@ def add_two():
     return {"message": "success"}
 
 @app.task()
+def scrape_append1():
+
+    total_duration = 15
+    interval = 2
+
+    base_url = "https://www.goal.com/en-za/match/cagliari-vs-como/xkKpJSSPlhIcIbKehyht1"
+    minor_url = "https://africa.espn.com/football/commentary/_/gameId/712123"
+
+    
+
+    end_time = datetime.now() + timedelta(minutes=total_duration)
+
+    # get score
+    team_names = []
+
+    # FEED IT TEAMNAMES AND DATE THEN IT WILL GET THE ID AND RETRIVE THE LINK
+    # IMPORT generate_match_id, ONLY IF IT EXISTS NO CREATING
+
+
+    # Scrape and print new scores using the scrape_scores function
+    current_score =  scrape_scores(base_url)
+    if current_score is not None:
+        print(f"New Scores: {current_score}")
+
+    team_names_list = list(current_score.keys())
+    team_a_name = team_names_list[0]
+    team_b_name = team_names_list[1]
+    team_names.append(team_a_name)
+    team_names.append(team_b_name)
+
+    # Get current date
+    match_date = datetime.now().strftime("%Y-%m-%d")
+
+    while datetime.now() < end_time:
+        try:
+            # Fetch the most recent match document from MongoDB
+            
+            # Generate match ID
+            match_id = generate_match_id(team_a_name, team_b_name, match_date)
+            logger.info(f"match_id: {match_id}")
+            match = collection.find_one({"_id": match_id})
+
+            # Ensure that match and URLs exist
+            if not match:
+                logger.warning("No match found or URLs are missing.")
+                return {"message": "No match found or URLs are missing."}
+
+            base_url = match['goal']
+            minor_url = match['espn']  # Assuming minor_url is also stored
+
+            # Scrape and print new scores using the scrape_scores function
+            current_score = scrape_scores(base_url)
+            if current_score is not None:
+                logger.info(f"New Scores: {current_score}")
+
+            
+
+            # Scrape and print new commentary using the scrape_commentary_with_transform function
+            commentary = scrape_commentary_with_transform(minor_url, team_names)
+
+            # Convert the DataFrame to JSON
+            comments_json = commentary.to_json(orient='records', indent=4)
+
+            # Add comments to the match
+            add_comments_to_match(team_a_name, team_b_name, match_date, comments_json)
+
+            logger.info("Scraping and update successful.")
+
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
+            # Optionally, you can retry the task if an error occurs
+              # Retry after 60 seconds
+
+        # Wait for the next interval (2 minutes)
+        time.sleep(interval * 60)
+
+    return {"message": "Full scrape done for 15 minutes"}
+
+@app.task()
 def scrape_append():
     # declare urls
     # base_url = "https://www.goal.com/en-za/match/villarreal-vs-atletico-madrid/0RaCUkNv_LpxPP6gg-jd2"
@@ -103,15 +188,13 @@ def scrape_append():
     base_url = ''
     minor_url = ''
 
-    href = minor()
-    if href:
-        base_url = href['goal']
-        # print(base_url)
-        minor_url = href['espn']
-        # print(minor_url)
+    
     
     # get score
     team_names = []
+
+    # FEED IT TEAMNAMES AND DATE THEN IT WILL GET THE ID AND RETRIVE THE LINK
+    # IMPORT generate_match_id, ONLY IF IT EXISTS NO CREATING
 
 
     # Scrape and print new scores using the scrape_scores function
@@ -128,7 +211,7 @@ def scrape_append():
     # get comments
     match_date = datetime.now().strftime("%Y-%m-%d")
     # Scrape and print new commentary using the fetch_comments function
-    # commentary = data
+    
     commentary =  scrape_commentary_with_transform(minor_url, team_names)
 
     # Convert the DataFrame to JSON

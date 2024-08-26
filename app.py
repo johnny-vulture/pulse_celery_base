@@ -4,6 +4,7 @@ from tasks import *
 from celery import Celery
 from celery.result import AsyncResult
 from constants import *
+from utils import *
 from pymongo import MongoClient
 # from flask_pymongo import PyMongo
 
@@ -20,6 +21,8 @@ mongodb_client = MongoClient(MONGODB_CON_STR)
 # client = MongoClient("mongodb://localhost:27017/")
 db = mongodb_client.celery
 # db = client.test_database
+
+collection = db.comments
 
 # Configure Celery settings
 celery_app.conf.update(
@@ -49,10 +52,30 @@ celery_app.conf.update(
 )
 
 
+@app.route("/full1")
+def run_scrape_intervals():
+    try:
+        # create the match object here
+        # Insert the initial document with an empty comments array or update if it exists
+        # collection.update_one({"_id": match_id}, {"$setOnInsert": {"_id": match_id, "comments": [],  "tweetable":[], "tweeted":[]}}, upsert=True)
+        # post request will create obj based on the data recieved
+
+        # pass the recieved link from the request here  
+        result = scrape_append1.delay()  # Ensure you pass the required argument to the task
+        return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
 # Define a route for adding data using a POST request
 @app.route("/full")
-def run_scrape_full():
+def run_scrape_full(): #post request
     try:
+        # create the match object here
+        # Insert the initial document with an empty comments array or update if it exists
+        # collection.update_one({"_id": match_id}, {"$setOnInsert": {"_id": match_id, "comments": [],  "tweetable":[], "tweeted":[]}}, upsert=True)
+        # post request will create obj based on the data recieved
+
+        # pass the recieved link from the request here  
         result = scrape_append.delay()  # Ensure you pass the required argument to the task
         return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
     except Exception as e:

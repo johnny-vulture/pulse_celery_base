@@ -9,6 +9,7 @@ import sys
 import spacy
 import json
 import csv
+import hashlib
 import re
 import uuid
 import pandas as pd
@@ -248,7 +249,7 @@ def generate_match_id(team_a_name, team_b_name, match_date):
 
     return match_id
 
-
+# add link
 def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
     match_id = generate_match_id(team_a_name, team_b_name, match_date)
 
@@ -320,7 +321,111 @@ def add_comments_to_match(team_a_name, team_b_name, match_date, comments_json):
             print(f"An error occurred while adding comment: {e}")
 
 
+# Abbreviations for LaLiga teams
+team_abbreviations = {
+    "alaves": "ALA",
+    "athletic-club": "ATH",
+    "atletico-madrid": "ATM",
+    "barcelona": "BAR",
+    "real-betis": "BET",
+    "celta-vigo": "CEL",
+    "espanyol": "ESP",
+    "getafe": "GET",
+    "girona": "GIR",
+    "las-palmas": "LPA",
+    "leganes": "LEG",
+    "mallorca": "MAL",
+    "osasuna": "OSA",
+    "rayo-vallecano": "RYO",
+    "real-madrid": "MAD",
+    "real-sociedad": "RSO",
+    "sevilla": "SEV",
+    "valencia": "VAL",
+    "real-valladolid": "VAD",
+    "villarreal": "VIL"
+}
 
+# Reverse mapping: Full names to their hyphenated forms (keys)
+team_name_to_key = {v.lower(): k for k, v in team_abbreviations.items()}
+
+def generate_match_id1(team_a_name, team_b_name, match_date, hash_algorithm='md5', short_id=False):
+    # Normalize and trim white spaces from team names
+    team_a_name = team_a_name.strip().lower()
+    team_b_name = team_b_name.strip().lower()
+
+    # Get the corresponding keys using the reverse mapping
+    team_a_key = team_name_to_key.get(team_a_name)
+    team_b_key = team_name_to_key.get(team_b_name)
+
+    if not team_a_key or not team_b_key:
+        raise ValueError(f"One or both team names are not recognized: {team_a_name}, {team_b_name}")
+
+    # Combine the abbreviations with the match date
+    id_string = f"{team_abbreviations[team_a_key]}{team_abbreviations[team_b_key]}{match_date}"
+
+    # Choose the hashing algorithm
+    if hash_algorithm == 'md5':
+        match_id = hashlib.md5(id_string.encode()).hexdigest()
+    elif hash_algorithm == 'sha256':
+        match_id = hashlib.sha256(id_string.encode()).hexdigest()
+    else:
+        raise ValueError("Unsupported hash algorithm. Choose 'md5' or 'sha256'.")
+
+    # Optionally shorten the ID
+    if short_id:
+        match_id = match_id[:8]
+
+    return match_id
+
+def extract_game_id_and_teams(url):
+    # LaLiga teams for the 2024/25 season in their hyphenated form
+    teams = {
+        "alaves": "Alavés",
+        "athletic-club": "Athletic Club",
+        "atletico-madrid": "Atlético Madrid",
+        "barcelona": "Barcelona",
+        "real-betis": "Real Betis",
+        "celta-vigo": "Celta Vigo",
+        "espanyol": "Espanyol",
+        "getafe": "Getafe",
+        "girona": "Girona",
+        "las-palmas": "Las Palmas",
+        "leganes": "Leganés",
+        "mallorca": "Mallorca",
+        "osasuna": "Osasuna",
+        "rayo-vallecano": "Rayo Vallecano",
+        "real-madrid": "Real Madrid",
+        "real-sociedad": "Real Sociedad",
+        "sevilla": "Sevilla",
+        "valencia": "Valencia",
+        "real-valladolid": "Real Valladolid",
+        "villarreal": "Villarreal"
+    }
+
+    # Extract game_id using regex
+    game_id_match = re.search(r'/gameId/(\d+)', url)
+    game_id = int(game_id_match.group(1)) if game_id_match else None
+
+    # Extract the last part of the URL (team names part)
+    team_name_part = url.split('/')[-1]
+
+    # Split the team names part by hyphen
+    possible_teams = team_name_part.split('-')
+
+    # List to store the matched teams
+    matched_teams = []
+
+    # Iterate over possible team name combinations to match with our list
+    temp_team = ""
+    for part in possible_teams:
+        temp_team += part
+        if temp_team in teams:
+            matched_teams.append(teams[temp_team])
+            temp_team = ""
+        else:
+            temp_team += "-"
+
+    return game_id, matched_teams
 #######################################################
 """
 def main():
