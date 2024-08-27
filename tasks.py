@@ -100,6 +100,107 @@ def add_two():
                          'body': "NEVER KEEP NO WEIGHT ON YOU"})
     return {"message": "success"}
 
+
+@app.task()
+def add_links(minor_url, base_url, match_id):
+    document = {
+        "_id": match_id,
+        "espn": minor_url,
+        "goal": base_url,
+        "comments": [],  # Initialize the comments field as an empty array
+        "tweetable": [],
+        "tweeted": []
+    }
+
+    try:
+        result = collection.insert_one(document)
+        print(f"Document inserted with ID: {result.inserted_id}")
+    except Exception as e:
+        print(f"Error inserting document: {e}")
+
+
+@app.task()
+def scrape_match(minor_url1, base_url1, match_id1):
+
+    total_duration = 15
+    interval = 2
+
+    base_url = base_url1
+    minor_url = minor_url1
+    match_id = match_id1
+
+    
+
+    end_time = datetime.now() + timedelta(minutes=total_duration)
+
+    # get score
+    team_names = []
+
+    # FEED IT TEAMNAMES AND DATE THEN IT WILL GET THE ID AND RETRIVE THE LINK
+    # IMPORT generate_match_id, ONLY IF IT EXISTS NO CREATING
+
+
+    # Scrape and print new scores using the scrape_scores function
+    current_score =  scrape_scores(base_url)
+    if current_score is not None:
+        print(f"New Scores: {current_score}")
+
+    team_names_list = list(current_score.keys())
+    team_a_name = team_names_list[0]
+    team_b_name = team_names_list[1]
+    team_names.append(team_a_name)
+    team_names.append(team_b_name)
+
+    # Get current date
+    match_date = datetime.now().strftime("%Y-%m-%d")
+
+    while datetime.now() < end_time:
+        try:
+            # Fetch the most recent match document from MongoDB
+            
+            # Generate match ID
+            # match_id = generate_match_id(team_a_name, team_b_name, match_date)
+            logger.info(f"match_id: {match_id}")
+            match = collection.find_one({"_id": match_id})
+
+            # Ensure that match and URLs exist
+            if not match:
+                logger.warning("No match found or URLs are missing.")
+                return {"message": "No match found or URLs are missing."}
+
+            base_url = match['goal']
+            minor_url = match['espn']  # Assuming minor_url is also stored
+
+            # Scrape and print new scores using the scrape_scores function
+            current_score = scrape_scores(base_url)
+            if current_score is not None:
+                logger.info(f"New Scores: {current_score}")
+
+            
+
+            # Scrape and print new commentary using the scrape_commentary_with_transform function
+            commentary = scrape_commentary_with_transform(minor_url, team_names)
+
+            # Convert the DataFrame to JSON
+            comments_json = commentary.to_json(orient='records', indent=4)
+
+            # Add comments to the match
+            add_comments_to_match(team_a_name, team_b_name, match_date, comments_json)
+
+            logger.info("Scraping and update successful.")
+
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
+            # Optionally, you can retry the task if an error occurs
+              # Retry after 60 seconds
+
+        # Wait for the next interval (2 minutes)
+        time.sleep(interval * 60)
+
+    return {"message": "Full scrape done for 15 minutes"}
+
+
+
 @app.task()
 def scrape_append1():
 

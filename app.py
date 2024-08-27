@@ -51,6 +51,30 @@ celery_app.conf.update(
     },
 )
 
+@app.route('/add_match', methods=['POST'])
+def run_command(): # nevermind the name its copied code kinda
+    goal_url = request.json.get('goal')
+    espn_url = request.json.get('espn')
+    match_id = request.json.get('match_id')
+
+    # Trigger the Celery task
+    task = add_links.apply_async(args=[espn_url, goal_url, match_id])
+
+    # Return the task ID to the client
+    return jsonify({'task_id': task.id}), 202
+
+@app.route("/run_match", methods=['POST'])
+def run_match_scrape():
+    try:
+        goal_url = request.json.get('goal')
+        espn_url = request.json.get('espn')
+        match_id = request.json.get('match_id')
+        # result = scrape_append1.delay()  # Ensure you pass the required argument to the task
+        # Trigger the Celery task
+        result = scrape_match.apply_async(args=[espn_url, goal_url, match_id])
+        return jsonify({'Task ID': result.id, 'Task Status': result.status}), 202
+    except Exception as e:
+        return jsonify(error=str(e)), 500
 
 @app.route("/full1")
 def run_scrape_intervals():
