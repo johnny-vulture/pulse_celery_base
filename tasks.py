@@ -168,8 +168,8 @@ def scrape_match(minor_url1, base_url1, match_id1):
                 logger.warning("No match found or URLs are missing.")
                 return {"message": "No match found or URLs are missing."}
 
-            base_url = match['goal']
-            minor_url = match['espn']  # Assuming minor_url is also stored
+            # base_url = match['goal']
+            # minor_url = match['espn']  # Assuming minor_url is also stored
 
             # Scrape and print new scores using the scrape_scores function
             current_score = scrape_scores(base_url)
