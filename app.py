@@ -28,13 +28,6 @@ collection = db.comments
 celery_app.conf.update(
     # Configure the result backend using MySQL
 
-    # 'db+mysql://root:<PASSWORD>@localhost/<DATABASE_NAME>'
-
-    # CELERY_BROKER_URL = "sqlalchemy+mysql://scott:tiger@localhost/foo"
-    # backend='db+mysql://username:password@host:port/database'
-    # db+mysql://johnny_vulture:dirtyharry_12@localhost/Root80
-    # db+mysql://scott:tiger@localhost/foo
-
     CELERY_RESULT_BACKEND=MONGODB_CON_STR,
 
     # Set the task serializer to JSON
