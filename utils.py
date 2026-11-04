@@ -57,7 +57,7 @@ collection = db.comments
 
 # Set the API key
 client = OpenAI(
-    api_key="sk-proj-X0rMQK1SUWBA1SWmj0wHT3BlbkFJiHbyDcOgle0JouwbBbwD")
+    api_key="")
 
 # Load the spaCy language model
 nlp = spacy.load("en_core_web_md")
@@ -210,7 +210,7 @@ def generate_soccer_moment_image(comment, output_dir=r"C:\Users\User\Desktop\wor
     output_path = os.path.join(output_dir, unique_filename)
 
     API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
-    headers = {"Authorization": "Bearer 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"}
+    headers = {"Authorization": ""}
 
     def query(payload):
         response = requests.post(API_URL, headers=headers, json=payload)
